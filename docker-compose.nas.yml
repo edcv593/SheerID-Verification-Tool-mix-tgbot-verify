@@ -1,0 +1,57 @@
+# 极空间 NAS 部署专用 docker-compose
+# 使用 Docker Hub 上的预构建镜像，无需在 NAS 上 build
+# 使用方法：docker-compose -f docker-compose.nas.yml up -d
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sheerid-mysql
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-Tgbot@2025}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-tgbot_verify}
+      - MYSQL_USER=${MYSQL_USER:-tgbot_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-Tgbot@2025}
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-Tgbot@2025}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tgbot:
+    image: ${DOCKERHUB_USERNAME:-your_username}/sheerid-tgbot:latest
+    container_name: sheerid-tgbot
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+      # Telegram Bot
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHANNEL_USERNAME=${CHANNEL_USERNAME:-pk_oa}
+      - CHANNEL_URL=${CHANNEL_URL:-https://t.me/pk_oa}
+      - ADMIN_USER_ID=${ADMIN_USER_ID}
+      # MySQL - 指向 compose 内的 mysql 服务
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-tgbot_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-Tgbot@2025}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-tgbot_verify}
+    volumes:
+      - ./logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

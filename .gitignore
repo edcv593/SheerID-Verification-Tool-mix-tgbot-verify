@@ -53,8 +53,8 @@ logs/
 # Configuration (with sensitive data)
 config_local.py
 
-# Docker
-.dockerignore
+# Docker - .dockerignore 需要提交到仓库，构建时使用
+mysql_data/
 
 # Playwright
 .playwright/
